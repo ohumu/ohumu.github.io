@@ -3,10 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rehearse</title>
+<title>Speak Polished — Speech &amp; Presentation Pacing Tool</title>
+<meta name="description" content="Paste your speech or presentation script and rehearse it at the right pace. Choose your delivery style, track readability, and practise word by word.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!-- Google AdSense: replace ca-pub-XXXXXXXXXXXXXXXX with your publisher ID once approved -->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -68,11 +73,12 @@
     flex: 1;
   }
 
-  /* PRESETS */
+  /* PRESETS -- equal height, top-aligned content */
   .presets {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
+    align-items: stretch;
   }
 
   .preset-btn {
@@ -84,7 +90,9 @@
     text-align: left;
     transition: border-color 0.15s, background 0.15s;
     position: relative;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .preset-btn:hover { border-color: rgba(0,0,0,0.25); }
@@ -100,6 +108,7 @@
     font-size: 1.25rem;
     display: block;
     margin-bottom: 0.3rem;
+    padding-right: 1.2rem;
   }
 
   .preset-btn .preset-wpm {
@@ -127,6 +136,7 @@
     border-radius: 50%;
     position: absolute;
     top: 1rem; right: 1rem;
+    flex-shrink: 0;
   }
 
   .preset-btn[data-preset="conversational"] .preset-dot { background: #3B5E8C; }
@@ -352,6 +362,17 @@
     display: none;
   }
 
+  /* AD SLOT */
+  .ad-slot {
+    width: 100%;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
   /* REHEARSAL */
   .rehearsal-panel {
     background: var(--surface);
@@ -433,20 +454,34 @@
     border-radius: 3px;
     padding: 1px 2px;
     transition: background 0.08s, color 0.08s;
+    cursor: pointer;
   }
 
+  .rehearsal-text .word:hover { background: var(--highlight-bg); }
+
   .rehearsal-text .word.done { color: rgba(26,25,23,0.22); }
+  .rehearsal-text .word.done:hover { color: rgba(26,25,23,0.5); background: var(--highlight-bg); }
 
   .rehearsal-text .word.active {
     background: var(--highlight-active);
     color: var(--highlight-text);
     padding: 1px 5px;
     border-radius: 4px;
+    cursor: pointer;
   }
 
+  .rehearsal-text .word.active:hover { opacity: 0.85; }
   .rehearsal-text .word.upcoming { color: var(--text); }
-
   .rehearsal-text .para-break { display: block; height: 0.6em; }
+
+  .click-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 300;
+    font-style: italic;
+    padding: 0 1.5rem 0.75rem;
+    display: none;
+  }
 
   .rehearsal-empty {
     padding: 2rem 1.5rem;
@@ -540,7 +575,7 @@
 <body>
 
 <header>
-  <h1>Rehearse <em>your words</em></h1>
+  <h1>Speak <em>polished</em></h1>
   <p>Paste your script. Choose how you want to sound. Read along.</p>
 </header>
 
@@ -639,11 +674,19 @@
     </div>
   </div>
 
+  <!-- AD SLOT -->
+  <div class="ad-slot" id="ad-slot">
+    <!-- AdSense ad unit goes here once approved.
+         1. Uncomment the script tag in <head> and add your publisher ID.
+         2. Replace this comment with your <ins> ad unit code. -->
+  </div>
+
   <!-- REHEARSAL -->
   <div class="rehearsal-panel">
     <div class="rehearsal-header">
       <span id="rehearsal-status">Ready to rehearse</span>
       <div class="rehearsal-controls">
+        <button class="btn-secondary" id="btn-restart" onclick="restartRehearsal()" style="display:none">Restart</button>
         <button class="btn-secondary" id="btn-pause" onclick="pauseResume()" style="display:none">Pause</button>
         <button class="btn-primary" id="btn-start" onclick="startRehearsal()" disabled>Start rehearsal</button>
       </div>
@@ -653,6 +696,7 @@
     </div>
     <div class="rehearsal-empty" id="rehearsal-empty">Add your script above to begin.</div>
     <div class="rehearsal-text" id="rehearsal-text" style="display:none"></div>
+    <div class="click-hint" id="click-hint">Click any word to jump to it</div>
     <div class="rehearsal-footer" id="rehearsal-footer" style="display:none">
       <span id="word-progress">Word 0 of 0</span>
       <span id="time-remaining">--</span>
@@ -680,11 +724,12 @@
   };
 
   let currentPreset = 'conversational';
-  let speedMultiplier = 1.0;   // 0.5 – 1.5 driven by slider
+  let speedMultiplier = 1.0;
   let words = [];
   let currentWordIndex = 0;
   let rehearsalTimer = null;
   let isPaused = false;
+  let isRunning = false;
   let rehearsalStartTime = null;
 
   // ---- Preset selection ----
@@ -701,17 +746,14 @@
 
   // ---- Speed slider ----
   const slider = document.getElementById('speed-slider');
-
   slider.addEventListener('input', () => {
-    // slider goes 50–150, representing 50%–150% of preset WPM
     speedMultiplier = parseInt(slider.value) / 100;
     updateSpeedReadout();
     updateStats();
   });
 
   function updateSpeedReadout() {
-    const base = PRESETS[currentPreset].wpm;
-    const actual = Math.round(base * speedMultiplier);
+    const actual = Math.round(PRESETS[currentPreset].wpm * speedMultiplier);
     document.getElementById('speed-readout').innerHTML = `${actual} <span>wpm</span>`;
   }
 
@@ -744,11 +786,8 @@
     const result = [];
     const paragraphs = text.split(/\n+/);
     paragraphs.forEach((para, pi) => {
-      const raw = para.trim().split(/\s+/).filter(w => w.length > 0);
-      raw.forEach(w => result.push({ text: w, isBreak: false }));
-      if (pi < paragraphs.length - 1 && para.trim().length > 0) {
-        result.push({ text: '', isBreak: true });
-      }
+      para.trim().split(/\s+/).filter(w => w.length > 0).forEach(w => result.push({ text: w, isBreak: false }));
+      if (pi < paragraphs.length - 1 && para.trim().length > 0) result.push({ text: '', isBreak: true });
     });
     return result;
   }
@@ -766,11 +805,9 @@
     const ws = text.trim().split(/\s+/).filter(w => w.length > 0);
     const wc = ws.length;
     if (wc < 3) return null;
-    const chunks = text.replace(/[.!?]/g, '|').split('|').filter(s => s.trim().length > 0);
-    const sc = Math.max(1, chunks.length);
+    const sc = Math.max(1, text.replace(/[.!?]/g, '|').split('|').filter(s => s.trim().length > 0).length);
     const syllables = ws.reduce((sum, w) => sum + countSyllables(w), 0);
-    const score = 206.835 - (1.015 * (wc / sc)) - (84.6 * (syllables / wc));
-    return Math.max(0, Math.min(100, score));
+    return Math.max(0, Math.min(100, 206.835 - (1.015 * (wc / sc)) - (84.6 * (syllables / wc))));
   }
 
   function gradeFromScore(score) {
@@ -789,9 +826,7 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  function effectiveWpm() {
-    return PRESETS[currentPreset].wpm * speedMultiplier;
-  }
+  function effectiveWpm() { return PRESETS[currentPreset].wpm * speedMultiplier; }
 
   // ---- Stats ----
   function updateStats() {
@@ -799,11 +834,10 @@
     const wc = countWords(text);
     const sents = parseSentences(text);
     const sc = sents.length;
-    const speakSecs = wc > 0 ? (wc / effectiveWpm()) * 60 : 0;
     const avg = sc > 0 ? Math.round(wc / sc) : 0;
 
     document.getElementById('word-counter').textContent = wc + (wc === 1 ? ' word' : ' words');
-    document.getElementById('stat-time').textContent = wc > 0 ? formatTime(speakSecs) : '0:00';
+    document.getElementById('stat-time').textContent = wc > 0 ? formatTime((wc / effectiveWpm()) * 60) : '0:00';
     document.getElementById('stat-words').textContent = wc.toLocaleString();
     document.getElementById('stat-sentences').textContent = sc;
     document.getElementById('stat-avg').textContent = avg;
@@ -815,9 +849,7 @@
     bar.style.background = color;
     document.getElementById('flesch-grade').textContent = grade;
     document.getElementById('flesch-note').textContent = note;
-
-    const hasLong = sents.some(s => countWords(s) > 25);
-    document.getElementById('long-warn').style.display = hasLong ? 'block' : 'none';
+    document.getElementById('long-warn').style.display = sents.some(s => countWords(s) > 25) ? 'block' : 'none';
     document.getElementById('btn-start').disabled = wc === 0;
   }
 
@@ -826,12 +858,13 @@
     const text = document.getElementById('script-input').value;
     words = parseWords(text);
     currentWordIndex = 0;
-
     const realCount = words.filter(w => !w.isBreak).length;
+
     if (realCount === 0) {
       document.getElementById('rehearsal-empty').style.display = 'flex';
       document.getElementById('rehearsal-text').style.display = 'none';
       document.getElementById('rehearsal-footer').style.display = 'none';
+      document.getElementById('click-hint').style.display = 'none';
       document.getElementById('rehearsal-status').textContent = 'Ready to rehearse';
       return;
     }
@@ -845,27 +878,55 @@
   function renderRehearsalText() {
     const container = document.getElementById('rehearsal-text');
     container.style.display = 'block';
-
     let html = '';
     words.forEach((w, i) => {
       if (w.isBreak) { html += '<span class="para-break"></span>'; return; }
-      let cls = i < currentWordIndex ? 'done' : i === currentWordIndex ? 'active' : 'upcoming';
-      html += `<span class="word ${cls}" id="w-${i}">${escapeHtml(w.text)}</span> `;
+      const cls = i < currentWordIndex ? 'done' : i === currentWordIndex ? 'active' : 'upcoming';
+      html += `<span class="word ${cls}" id="w-${i}" data-index="${i}">${escapeHtml(w.text)}</span> `;
     });
-
     container.innerHTML = html;
-    scrollToActive();
+    container.querySelectorAll('.word').forEach(el => {
+      el.addEventListener('click', () => jumpToWord(parseInt(el.dataset.index)));
+    });
+    softScrollToActive();
     updateWordCounter();
     updateProgressBar();
   }
 
-  function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Only scroll if the active word is outside the visible viewport
+  function softScrollToActive() {
+    const el = document.getElementById('w-' + currentWordIndex);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const inView = rect.top >= 80 && rect.bottom <= (window.innerHeight - 80);
+    if (!inView) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 
-  function scrollToActive() {
-    const el = document.getElementById('w-' + currentWordIndex);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  function jumpToWord(index) {
+    if (index < 0 || index >= words.length || words[index].isBreak) return;
+    const wasRunning = isRunning && !isPaused;
+    clearTimeout(rehearsalTimer);
+    rehearsalTimer = null;
+    currentWordIndex = index;
+
+    words.forEach((w, i) => {
+      if (w.isBreak) return;
+      const el = document.getElementById('w-' + i);
+      if (!el) return;
+      el.className = i < currentWordIndex ? 'word done' : i === currentWordIndex ? 'word active' : 'word upcoming';
+    });
+
+    softScrollToActive();
+    updateWordCounter();
+    updateProgressBar();
+    if (wasRunning) scheduleNext();
+    else if (isRunning) document.getElementById('rehearsal-status').textContent = 'Paused';
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function doneWordCount() {
@@ -878,34 +939,26 @@
     const total = words.filter(w => !w.isBreak).length;
     const done = doneWordCount();
     document.getElementById('word-progress').textContent = `Word ${Math.min(done + 1, total)} of ${total}`;
-    const remaining = total - done;
-    const secs = (remaining / effectiveWpm()) * 60;
+    const secs = ((total - done) / effectiveWpm()) * 60;
     document.getElementById('time-remaining').textContent = secs > 1 ? formatTime(secs) + ' remaining' : '--';
   }
 
   function updateProgressBar() {
     const total = words.filter(w => !w.isBreak).length;
-    const done = doneWordCount();
-    const pct = total > 0 ? (done / total) * 100 : 0;
+    const pct = total > 0 ? (doneWordCount() / total) * 100 : 0;
     document.getElementById('progress-fill').style.width = Math.round(pct) + '%';
   }
 
-  // ---- Word duration ----
   function wordDuration(wordText) {
     const preset = PRESETS[currentPreset];
-    const msPerWord = (60 / effectiveWpm()) * 1000;
-    let duration = msPerWord;
-
+    let duration = (60 / effectiveWpm()) * 1000;
     if (preset.variable) duration *= (0.85 + Math.random() * 0.30);
-
-    // scale pauses inversely with speed so they don't feel wrong at extremes
     const pauseScale = 1 / speedMultiplier;
     const last = wordText.slice(-1);
     if (last === '.' || last === ':' || last === ';') duration += preset.pausePeriod * pauseScale;
     else if (last === ',') duration += preset.pauseComma * pauseScale;
     else if (last === '?') duration += preset.pauseQuestion * pauseScale;
     else if (last === '!') duration += preset.pauseExclaim * pauseScale;
-
     return Math.round(duration);
   }
 
@@ -914,9 +967,26 @@
     if (words.filter(w => !w.isBreak).length === 0) return;
     currentWordIndex = 0;
     isPaused = false;
+    isRunning = true;
     renderRehearsalText();
     document.getElementById('btn-start').style.display = 'none';
     document.getElementById('btn-pause').style.display = 'inline-block';
+    document.getElementById('btn-restart').style.display = 'inline-block';
+    document.getElementById('click-hint').style.display = 'block';
+    document.getElementById('rehearsal-status').textContent = 'Rehearsing...';
+    document.getElementById('done-panel').style.display = 'none';
+    rehearsalStartTime = Date.now();
+    scheduleNext();
+  }
+
+  function restartRehearsal() {
+    clearTimeout(rehearsalTimer);
+    rehearsalTimer = null;
+    currentWordIndex = 0;
+    isPaused = false;
+    isRunning = true;
+    renderRehearsalText();
+    document.getElementById('btn-pause').textContent = 'Pause';
     document.getElementById('rehearsal-status').textContent = 'Rehearsing...';
     document.getElementById('done-panel').style.display = 'none';
     rehearsalStartTime = Date.now();
@@ -924,25 +994,21 @@
   }
 
   function scheduleNext() {
-    if (currentWordIndex < words.length && words[currentWordIndex].isBreak) {
-      currentWordIndex++;
-      scheduleNext();
-      return;
-    }
+    if (currentWordIndex < words.length && words[currentWordIndex].isBreak) { currentWordIndex++; scheduleNext(); return; }
     if (currentWordIndex >= words.length) { finishRehearsal(); return; }
 
-    const dur = wordDuration(words[currentWordIndex].text);
     rehearsalTimer = setTimeout(() => {
       if (isPaused) return;
       currentWordIndex++;
       const prev = document.getElementById('w-' + (currentWordIndex - 1));
       const next = document.getElementById('w-' + currentWordIndex);
       if (prev) prev.className = 'word done';
-      if (next) { next.className = 'word active'; scrollToActive(); }
+      if (next) next.className = 'word active';
+      softScrollToActive();
       updateWordCounter();
       updateProgressBar();
       scheduleNext();
-    }, dur);
+    }, wordDuration(words[currentWordIndex].text));
   }
 
   function pauseResume() {
@@ -955,42 +1021,52 @@
       isPaused = true;
       clearTimeout(rehearsalTimer);
       document.getElementById('btn-pause').textContent = 'Resume';
-      document.getElementById('rehearsal-status').textContent = 'Paused';
+      document.getElementById('rehearsal-status').textContent = 'Paused — click any word to jump';
     }
   }
 
   function stopRehearsal() {
     clearTimeout(rehearsalTimer);
     isPaused = false;
+    isRunning = false;
     rehearsalTimer = null;
     currentWordIndex = 0;
     document.getElementById('btn-start').style.display = 'inline-block';
     document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('btn-restart').style.display = 'none';
+    document.getElementById('click-hint').style.display = 'none';
     document.getElementById('rehearsal-status').textContent = 'Ready to rehearse';
   }
 
   function finishRehearsal() {
     clearTimeout(rehearsalTimer);
     rehearsalTimer = null;
+    isRunning = false;
     document.querySelectorAll('.word').forEach(el => el.className = 'word done');
     document.getElementById('progress-fill').style.width = '100%';
     document.getElementById('btn-start').style.display = 'inline-block';
     document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('btn-restart').style.display = 'none';
+    document.getElementById('click-hint').style.display = 'none';
     document.getElementById('rehearsal-status').textContent = 'Complete';
     const elapsed = Math.round((Date.now() - rehearsalStartTime) / 1000);
     const wc = words.filter(w => !w.isBreak).length;
     const label = currentPreset.charAt(0).toUpperCase() + currentPreset.slice(1);
-    const actualWpm = Math.round(effectiveWpm());
     document.getElementById('done-summary').textContent =
-      `${wc.toLocaleString()} words in ${formatTime(elapsed)} — ${label} at ${actualWpm} wpm.`;
+      `${wc.toLocaleString()} words in ${formatTime(elapsed)} — ${label} at ${Math.round(effectiveWpm())} wpm.`;
     document.getElementById('done-panel').style.display = 'block';
   }
 
   function resetRehearsal() {
     document.getElementById('done-panel').style.display = 'none';
     currentWordIndex = 0;
+    isRunning = false;
     renderRehearsalText();
     document.getElementById('rehearsal-status').textContent = 'Ready to rehearse';
+    document.getElementById('btn-start').style.display = 'inline-block';
+    document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('btn-restart').style.display = 'none';
+    document.getElementById('click-hint').style.display = 'none';
   }
 
   function clearAll() {
@@ -1000,18 +1076,20 @@
     clearTimeout(rehearsalTimer);
     rehearsalTimer = null;
     isPaused = false;
+    isRunning = false;
     document.getElementById('btn-start').style.display = 'inline-block';
     document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('btn-restart').style.display = 'none';
     document.getElementById('done-panel').style.display = 'none';
     document.getElementById('rehearsal-empty').style.display = 'flex';
     document.getElementById('rehearsal-text').style.display = 'none';
     document.getElementById('rehearsal-footer').style.display = 'none';
+    document.getElementById('click-hint').style.display = 'none';
     document.getElementById('rehearsal-status').textContent = 'Ready to rehearse';
     document.getElementById('progress-fill').style.width = '0%';
     updateStats();
   }
 
-  // Init
   updateSpeedReadout();
   updateStats();
 </script>
