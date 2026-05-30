@@ -784,7 +784,6 @@
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       updateStats();
-      prepareRehearsal();
     }, 300);
   });
 
@@ -982,6 +981,7 @@
 
   // ---- Rehearsal control ----
   function startRehearsal() {
+    prepareRehearsal();
     if (words.filter(w => !w.isBreak).length === 0) return;
     currentWordIndex = 0;
     isPaused = false;
