@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rehearse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F4EF;
+    --surface: #FFFFFF;
+    --border: rgba(0,0,0,0.10);
+    --text: #1A1917;
+    --muted: #6B6860;
+    --accent: #1A1917;
+    --highlight-bg: #E8E2D6;
+    --highlight-active: #1A1917;
+    --highlight-text: #FFFFFF;
+    --stat-bg: #F0EDE7;
+    --warn: #C17B2A;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 3rem 2rem 1.5rem;
+    max-width: 860px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.8rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 0.4rem;
+  }
+
+  header h1 em { font-style: italic; color: var(--muted); }
+
+  header p {
+    font-size: 0.95rem;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 2rem 3rem;
+    display: grid;
+    gap: 1.5rem;
+    flex: 1;
+  }
+
+  /* PRESETS */
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .preset-btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .preset-btn:hover { border-color: rgba(0,0,0,0.25); }
+
+  .preset-btn.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .preset-btn .preset-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+
+  .preset-btn .preset-wpm {
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .preset-btn .preset-desc {
+    font-size: 0.82rem;
+    font-weight: 300;
+    line-height: 1.5;
+    opacity: 0.75;
+  }
+
+  .preset-btn.active .preset-desc,
+  .preset-btn.active .preset-wpm { opacity: 0.7; }
+
+  .preset-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    position: absolute;
+    top: 1rem; right: 1rem;
+  }
+
+  .preset-btn[data-preset="conversational"] .preset-dot { background: #3B5E8C; }
+  .preset-btn[data-preset="commanding"] .preset-dot { background: #5C3D8F; }
+  .preset-btn[data-preset="charged"] .preset-dot { background: #8C3B3B; }
+  .preset-btn.active .preset-dot { background: rgba(255,255,255,0.5); }
+
+  /* SPEED SLIDER */
+  .speed-control {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .speed-label-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 110px;
+  }
+
+  .speed-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.2rem;
+  }
+
+  .speed-readout {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .speed-readout span {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--muted);
+    margin-left: 3px;
+  }
+
+  .speed-slider-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .speed-slider-wrap input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .speed-range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .speed-reset {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .speed-reset:hover { color: var(--text); border-color: rgba(0,0,0,0.25); background: var(--highlight-bg); }
+
+  /* INPUT */
+  .input-area {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .input-area textarea {
+    width: 100%;
+    min-height: 220px;
+    padding: 1.5rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 300;
+    line-height: 1.75;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: vertical;
+  }
+
+  .input-area textarea::placeholder { color: var(--muted); opacity: 0.6; }
+
+  .input-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .input-footer button {
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .input-footer button:hover { color: var(--text); background: var(--highlight-bg); }
+
+  /* STATS */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    background: var(--stat-bg);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.7rem;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat-unit {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.2rem;
+    font-weight: 300;
+  }
+
+  /* READABILITY */
+  .readability {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .flesch-bar-wrap { flex: 1; }
+
+  .flesch-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .flesch-bar-track {
+    height: 6px;
+    background: var(--highlight-bg);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .flesch-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease, background 0.4s ease;
+    background: var(--muted);
+  }
+
+  .readability-label { text-align: right; min-width: 130px; }
+
+  .readability-grade {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    line-height: 1.2;
+  }
+
+  .readability-note {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .long-sentence-warning {
+    font-size: 0.82rem;
+    color: var(--warn);
+    margin-top: 0.5rem;
+    display: none;
+  }
+
+  /* REHEARSAL */
+  .rehearsal-panel {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .rehearsal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .rehearsal-header span {
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .rehearsal-controls { display: flex; gap: 0.5rem; align-items: center; }
+
+  .btn-primary {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.3; cursor: default; }
+
+  .btn-secondary {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 400;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-secondary:hover { background: var(--highlight-bg); }
+
+  .progress-bar-wrap { height: 3px; background: var(--highlight-bg); }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.15s linear;
+  }
+
+  .rehearsal-text {
+    padding: 2rem 1.5rem;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    line-height: 2.1;
+    color: var(--text);
+    min-height: 200px;
+    word-spacing: 0.05em;
+  }
+
+  .rehearsal-text .word {
+    display: inline;
+    border-radius: 3px;
+    padding: 1px 2px;
+    transition: background 0.08s, color 0.08s;
+  }
+
+  .rehearsal-text .word.done { color: rgba(26,25,23,0.22); }
+
+  .rehearsal-text .word.active {
+    background: var(--highlight-active);
+    color: var(--highlight-text);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .rehearsal-text .word.upcoming { color: var(--text); }
+
+  .rehearsal-text .para-break { display: block; height: 0.6em; }
+
+  .rehearsal-empty {
+    padding: 2rem 1.5rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 300;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+  }
+
+  .rehearsal-footer {
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* DONE */
+  .done-panel {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    display: none;
+    text-align: center;
+  }
+
+  .done-panel h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+  }
+
+  .done-panel p {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    font-weight: 300;
+    margin-bottom: 1.5rem;
+  }
+
+  .done-panel button {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.5);
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .done-panel button:hover { background: rgba(255,255,255,0.1); }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 1.5rem 2rem 2rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  footer a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s;
+  }
+
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    header { padding: 2rem 1rem 1rem; }
+    header h1 { font-size: 2rem; }
+    main { padding: 0 1rem 2rem; }
+    .presets { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .readability { flex-direction: column; align-items: flex-start; }
+    .readability-label { text-align: left; }
+    .speed-control { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Rehearse <em>your words</em></h1>
+  <p>Paste your script. Choose how you want to sound. Read along.</p>
+</header>
+
+<main>
+
+  <!-- PRESETS -->
+  <div class="presets">
+    <button class="preset-btn active" data-preset="conversational">
+      <span class="preset-dot"></span>
+      <span class="preset-name">Conversational</span>
+      <span class="preset-wpm">130 wpm</span>
+      <span class="preset-desc">Natural, warm, unhurried. Good for introductions, podcasts, and casual talks.</span>
+    </button>
+    <button class="preset-btn" data-preset="commanding">
+      <span class="preset-dot"></span>
+      <span class="preset-name">Commanding</span>
+      <span class="preset-wpm">95 wpm</span>
+      <span class="preset-desc">Deliberate and weighty. Each sentence lands. Built for keynotes and pitches.</span>
+    </button>
+    <button class="preset-btn" data-preset="charged">
+      <span class="preset-dot"></span>
+      <span class="preset-name">Charged</span>
+      <span class="preset-wpm">155 wpm · variable</span>
+      <span class="preset-desc">Fast then still. Momentum and pause. For storytelling and emotional beats.</span>
+    </button>
+  </div>
+
+  <!-- SPEED SLIDER -->
+  <div class="speed-control">
+    <div class="speed-label-group">
+      <div class="speed-label">Speed adjustment</div>
+      <div class="speed-readout" id="speed-readout">130 <span>wpm</span></div>
+    </div>
+    <div class="speed-slider-wrap">
+      <input type="range" id="speed-slider" min="50" max="150" value="100" step="1">
+      <div class="speed-range-labels">
+        <span>Slower</span>
+        <span>Preset default</span>
+        <span>Faster</span>
+      </div>
+    </div>
+    <button class="speed-reset" onclick="resetSpeed()">Reset</button>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-area">
+    <textarea id="script-input" placeholder="Paste or type your script here. Each word will be highlighted in turn as you rehearse."></textarea>
+    <div class="input-footer">
+      <span id="word-counter">0 words</span>
+      <button onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Speaking time</div>
+      <div class="stat-value" id="stat-time">0:00</div>
+      <div class="stat-unit">mins : secs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Words</div>
+      <div class="stat-value" id="stat-words">0</div>
+      <div class="stat-unit">&nbsp;</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Sentences</div>
+      <div class="stat-value" id="stat-sentences">0</div>
+      <div class="stat-unit">&nbsp;</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg sentence</div>
+      <div class="stat-value" id="stat-avg">0</div>
+      <div class="stat-unit">words</div>
+    </div>
+  </div>
+
+  <!-- READABILITY -->
+  <div class="readability">
+    <div class="flesch-bar-wrap">
+      <div class="flesch-bar-labels">
+        <span>Complex</span>
+        <span>Standard</span>
+        <span>Simple</span>
+      </div>
+      <div class="flesch-bar-track">
+        <div class="flesch-bar-fill" id="flesch-bar" style="width:0%"></div>
+      </div>
+      <div class="long-sentence-warning" id="long-warn">
+        ⚠ Some sentences exceed 25 words and may be hard to deliver in one breath.
+      </div>
+    </div>
+    <div class="readability-label">
+      <div class="readability-grade" id="flesch-grade">--</div>
+      <div class="readability-note" id="flesch-note">paste your script</div>
+    </div>
+  </div>
+
+  <!-- REHEARSAL -->
+  <div class="rehearsal-panel">
+    <div class="rehearsal-header">
+      <span id="rehearsal-status">Ready to rehearse</span>
+      <div class="rehearsal-controls">
+        <button class="btn-secondary" id="btn-pause" onclick="pauseResume()" style="display:none">Pause</button>
+        <button class="btn-primary" id="btn-start" onclick="startRehearsal()" disabled>Start rehearsal</button>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="rehearsal-empty" id="rehearsal-empty">Add your script above to begin.</div>
+    <div class="rehearsal-text" id="rehearsal-text" style="display:none"></div>
+    <div class="rehearsal-footer" id="rehearsal-footer" style="display:none">
+      <span id="word-progress">Word 0 of 0</span>
+      <span id="time-remaining">--</span>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div class="done-panel" id="done-panel">
+    <h2>Well done.</h2>
+    <p id="done-summary">You ran through your script.</p>
+    <button onclick="resetRehearsal()">Rehearse again</button>
+  </div>
+
+</main>
+
+<footer>
+  Made by <a href="https://siohumu.com" target="_blank" rel="noopener">Stephanie Ohumu</a>
+</footer>
+
+<script>
+  const PRESETS = {
+    conversational: { wpm: 130, pausePeriod: 550,  pauseComma: 180, pauseQuestion: 650,  pauseExclaim: 600,  variable: false },
+    commanding:     { wpm: 95,  pausePeriod: 1050, pauseComma: 380, pauseQuestion: 1150, pauseExclaim: 1050, variable: false },
+    charged:        { wpm: 155, pausePeriod: 850,  pauseComma: 130, pauseQuestion: 950,  pauseExclaim: 900,  variable: true  }
+  };
+
+  let currentPreset = 'conversational';
+  let speedMultiplier = 1.0;   // 0.5 – 1.5 driven by slider
+  let words = [];
+  let currentWordIndex = 0;
+  let rehearsalTimer = null;
+  let isPaused = false;
+  let rehearsalStartTime = null;
+
+  // ---- Preset selection ----
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPreset = btn.dataset.preset;
+      updateSpeedReadout();
+      updateStats();
+      if (rehearsalTimer) { stopRehearsal(); renderRehearsalText(); }
+    });
+  });
+
+  // ---- Speed slider ----
+  const slider = document.getElementById('speed-slider');
+
+  slider.addEventListener('input', () => {
+    // slider goes 50–150, representing 50%–150% of preset WPM
+    speedMultiplier = parseInt(slider.value) / 100;
+    updateSpeedReadout();
+    updateStats();
+  });
+
+  function updateSpeedReadout() {
+    const base = PRESETS[currentPreset].wpm;
+    const actual = Math.round(base * speedMultiplier);
+    document.getElementById('speed-readout').innerHTML = `${actual} <span>wpm</span>`;
+  }
+
+  function resetSpeed() {
+    slider.value = 100;
+    speedMultiplier = 1.0;
+    updateSpeedReadout();
+    updateStats();
+  }
+
+  // ---- Text input ----
+  document.getElementById('script-input').addEventListener('input', () => {
+    updateStats();
+    prepareRehearsal();
+  });
+
+  // ---- Helpers ----
+  function countSyllables(word) {
+    word = word.toLowerCase().replace(/[^a-z]/g, '');
+    if (!word.length) return 1;
+    if (word.length <= 3) return 1;
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+    word = word.replace(/^y/, '');
+    const m = word.match(/[aeiouy]{1,2}/g);
+    return m ? Math.max(1, m.length) : 1;
+  }
+
+  function parseWords(text) {
+    if (!text.trim()) return [];
+    const result = [];
+    const paragraphs = text.split(/\n+/);
+    paragraphs.forEach((para, pi) => {
+      const raw = para.trim().split(/\s+/).filter(w => w.length > 0);
+      raw.forEach(w => result.push({ text: w, isBreak: false }));
+      if (pi < paragraphs.length - 1 && para.trim().length > 0) {
+        result.push({ text: '', isBreak: true });
+      }
+    });
+    return result;
+  }
+
+  function countWords(text) {
+    return text.trim() ? text.trim().split(/\s+/).filter(w => w.length > 0).length : 0;
+  }
+
+  function parseSentences(text) {
+    if (!text.trim()) return [];
+    return text.trim().split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+  }
+
+  function fleschScore(text) {
+    const ws = text.trim().split(/\s+/).filter(w => w.length > 0);
+    const wc = ws.length;
+    if (wc < 3) return null;
+    const chunks = text.replace(/[.!?]/g, '|').split('|').filter(s => s.trim().length > 0);
+    const sc = Math.max(1, chunks.length);
+    const syllables = ws.reduce((sum, w) => sum + countSyllables(w), 0);
+    const score = 206.835 - (1.015 * (wc / sc)) - (84.6 * (syllables / wc));
+    return Math.max(0, Math.min(100, score));
+  }
+
+  function gradeFromScore(score) {
+    if (score === null) return { grade: '--', note: 'paste your script', color: '#888' };
+    if (score >= 90) return { grade: 'Very easy',      note: 'clear for any audience',              color: '#3B7A57' };
+    if (score >= 70) return { grade: 'Easy',           note: 'comfortable to deliver',              color: '#4A8C3F' };
+    if (score >= 60) return { grade: 'Standard',       note: 'suits most audiences',                color: '#6B8C3F' };
+    if (score >= 50) return { grade: 'Fairly complex', note: 'consider simplifying some sentences', color: '#8C7A2A' };
+    if (score >= 30) return { grade: 'Academic',       note: 'demanding for live delivery',         color: '#8C4A1A' };
+    return               { grade: 'Very academic',  note: 'may trip you up at speed',            color: '#8C2A2A' };
+  }
+
+  function formatTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = Math.round(secs % 60);
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function effectiveWpm() {
+    return PRESETS[currentPreset].wpm * speedMultiplier;
+  }
+
+  // ---- Stats ----
+  function updateStats() {
+    const text = document.getElementById('script-input').value;
+    const wc = countWords(text);
+    const sents = parseSentences(text);
+    const sc = sents.length;
+    const speakSecs = wc > 0 ? (wc / effectiveWpm()) * 60 : 0;
+    const avg = sc > 0 ? Math.round(wc / sc) : 0;
+
+    document.getElementById('word-counter').textContent = wc + (wc === 1 ? ' word' : ' words');
+    document.getElementById('stat-time').textContent = wc > 0 ? formatTime(speakSecs) : '0:00';
+    document.getElementById('stat-words').textContent = wc.toLocaleString();
+    document.getElementById('stat-sentences').textContent = sc;
+    document.getElementById('stat-avg').textContent = avg;
+
+    const score = fleschScore(text);
+    const { grade, note, color } = gradeFromScore(score);
+    const bar = document.getElementById('flesch-bar');
+    bar.style.width = (score !== null ? Math.round(score) : 0) + '%';
+    bar.style.background = color;
+    document.getElementById('flesch-grade').textContent = grade;
+    document.getElementById('flesch-note').textContent = note;
+
+    const hasLong = sents.some(s => countWords(s) > 25);
+    document.getElementById('long-warn').style.display = hasLong ? 'block' : 'none';
+    document.getElementById('btn-start').disabled = wc === 0;
+  }
+
+  // ---- Rehearsal DOM ----
+  function prepareRehearsal() {
+    const text = document.getElementById('script-input').value;
+    words = parseWords(text);
+    currentWordIndex = 0;
+
+    const realCount = words.filter(w => !w.isBreak).length;
+    if (realCount === 0) {
+      document.getElementById('rehearsal-empty').style.display = 'flex';
+      document.getElementById('rehearsal-text').style.display = 'none';
+      document.getElementById('rehearsal-footer').style.display = 'none';
+      document.getElementById('rehearsal-status').textContent = 'Ready to rehearse';
+      return;
+    }
+
+    document.getElementById('rehearsal-empty').style.display = 'none';
+    renderRehearsalText();
+    document.getElementById('rehearsal-footer').style.display = 'flex';
+    updateWordCounter();
+  }
+
+  function renderRehearsalText() {
+    const container = document.getElementById('rehearsal-text');
+    container.style.display = 'block';
+
+    let html = '';
+    words.forEach((w, i) => {
+      if (w.isBreak) { html += '<span class="para-break"></span>'; return; }
+      let cls = i < currentWordIndex ? 'done' : i === currentWordIndex ? 'active' : 'upcoming';
+      html += `<span class="word ${cls}" id="w-${i}">${escapeHtml(w.text)}</span> `;
+    });
+
+    container.innerHTML = html;
+    scrollToActive();
+    updateWordCounter();
+    updateProgressBar();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function scrollToActive() {
+    const el = document.getElementById('w-' + currentWordIndex);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function doneWordCount() {
+    let done = 0;
+    for (let i = 0; i < currentWordIndex; i++) { if (!words[i].isBreak) done++; }
+    return done;
+  }
+
+  function updateWordCounter() {
+    const total = words.filter(w => !w.isBreak).length;
+    const done = doneWordCount();
+    document.getElementById('word-progress').textContent = `Word ${Math.min(done + 1, total)} of ${total}`;
+    const remaining = total - done;
+    const secs = (remaining / effectiveWpm()) * 60;
+    document.getElementById('time-remaining').textContent = secs > 1 ? formatTime(secs) + ' remaining' : '--';
+  }
+
+  function updateProgressBar() {
+    const total = words.filter(w => !w.isBreak).length;
+    const done = doneWordCount();
+    const pct = total > 0 ? (done / total) * 100 : 0;
+    document.getElementById('progress-fill').style.width = Math.round(pct) + '%';
+  }
+
+  // ---- Word duration ----
+  function wordDuration(wordText) {
+    const preset = PRESETS[currentPreset];
+    const msPerWord = (60 / effectiveWpm()) * 1000;
+    let duration = msPerWord;
+
+    if (preset.variable) duration *= (0.85 + Math.random() * 0.30);
+
+    // scale pauses inversely with speed so they don't feel wrong at extremes
+    const pauseScale = 1 / speedMultiplier;
+    const last = wordText.slice(-1);
+    if (last === '.' || last === ':' || last === ';') duration += preset.pausePeriod * pauseScale;
+    else if (last === ',') duration += preset.pauseComma * pauseScale;
+    else if (last === '?') duration += preset.pauseQuestion * pauseScale;
+    else if (last === '!') duration += preset.pauseExclaim * pauseScale;
+
+    return Math.round(duration);
+  }
+
+  // ---- Rehearsal control ----
+  function startRehearsal() {
+    if (words.filter(w => !w.isBreak).length === 0) return;
+    currentWordIndex = 0;
+    isPaused = false;
+    renderRehearsalText();
+    document.getElementById('btn-start').style.display = 'none';
+    document.getElementById('btn-pause').style.display = 'inline-block';
+    document.getElementById('rehearsal-status').textContent = 'Rehearsing...';
+    document.getElementById('done-panel').style.display = 'none';
+    rehearsalStartTime = Date.now();
+    scheduleNext();
+  }
+
+  function scheduleNext() {
+    if (currentWordIndex < words.length && words[currentWordIndex].isBreak) {
+      currentWordIndex++;
+      scheduleNext();
+      return;
+    }
+    if (currentWordIndex >= words.length) { finishRehearsal(); return; }
+
+    const dur = wordDuration(words[currentWordIndex].text);
+    rehearsalTimer = setTimeout(() => {
+      if (isPaused) return;
+      currentWordIndex++;
+      const prev = document.getElementById('w-' + (currentWordIndex - 1));
+      const next = document.getElementById('w-' + currentWordIndex);
+      if (prev) prev.className = 'word done';
+      if (next) { next.className = 'word active'; scrollToActive(); }
+      updateWordCounter();
+      updateProgressBar();
+      scheduleNext();
+    }, dur);
+  }
+
+  function pauseResume() {
+    if (isPaused) {
+      isPaused = false;
+      document.getElementById('btn-pause').textContent = 'Pause';
+      document.getElementById('rehearsal-status').textContent = 'Rehearsing...';
+      scheduleNext();
+    } else {
+      isPaused = true;
+      clearTimeout(rehearsalTimer);
+      document.getElementById('btn-pause').textContent = 'Resume';
+      document.getElementById('rehearsal-status').textContent = 'Paused';
+    }
+  }
+
+  function stopRehearsal() {
+    clearTimeout(rehearsalTimer);
+    isPaused = false;
+    rehearsalTimer = null;
+    currentWordIndex = 0;
+    document.getElementById('btn-start').style.display = 'inline-block';
+    document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('rehearsal-status').textContent = 'Ready to rehearse';
+  }
+
+  function finishRehearsal() {
+    clearTimeout(rehearsalTimer);
+    rehearsalTimer = null;
+    document.querySelectorAll('.word').forEach(el => el.className = 'word done');
+    document.getElementById('progress-fill').style.width = '100%';
+    document.getElementById('btn-start').style.display = 'inline-block';
+    document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('rehearsal-status').textContent = 'Complete';
+    const elapsed = Math.round((Date.now() - rehearsalStartTime) / 1000);
+    const wc = words.filter(w => !w.isBreak).length;
+    const label = currentPreset.charAt(0).toUpperCase() + currentPreset.slice(1);
+    const actualWpm = Math.round(effectiveWpm());
+    document.getElementById('done-summary').textContent =
+      `${wc.toLocaleString()} words in ${formatTime(elapsed)} — ${label} at ${actualWpm} wpm.`;
+    document.getElementById('done-panel').style.display = 'block';
+  }
+
+  function resetRehearsal() {
+    document.getElementById('done-panel').style.display = 'none';
+    currentWordIndex = 0;
+    renderRehearsalText();
+    document.getElementById('rehearsal-status').textContent = 'Ready to rehearse';
+  }
+
+  function clearAll() {
+    document.getElementById('script-input').value = '';
+    words = [];
+    currentWordIndex = 0;
+    clearTimeout(rehearsalTimer);
+    rehearsalTimer = null;
+    isPaused = false;
+    document.getElementById('btn-start').style.display = 'inline-block';
+    document.getElementById('btn-pause').style.display = 'none';
+    document.getElementById('done-panel').style.display = 'none';
+    document.getElementById('rehearsal-empty').style.display = 'flex';
+    document.getElementById('rehearsal-text').style.display = 'none';
+    document.getElementById('rehearsal-footer').style.display = 'none';
+    document.getElementById('rehearsal-status').textContent = 'Ready to rehearse';
+    document.getElementById('progress-fill').style.width = '0%';
+    updateStats();
+  }
+
+  // Init
+  updateSpeedReadout();
+  updateStats();
+</script>
+</body>
+</html>
