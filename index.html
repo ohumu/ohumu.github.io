@@ -100,6 +100,8 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    color: var(--text);
+    -webkit-text-fill-color: var(--text);
   }
 
   .preset-btn:hover { border-color: rgba(0,0,0,0.25); }
@@ -108,6 +110,7 @@
     border-color: var(--accent);
     background: var(--accent);
     color: #fff;
+    -webkit-text-fill-color: #fff;
   }
 
   .preset-btn .preset-name {
@@ -778,10 +781,10 @@
   // ---- Text input with debounce to prevent layout jumping ----
   let debounceTimer = null;
   document.getElementById('script-input').addEventListener('input', () => {
-    prepareRehearsal();
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       updateStats();
+      prepareRehearsal();
     }, 300);
   });
 
