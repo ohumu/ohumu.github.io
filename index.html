@@ -109,6 +109,7 @@
     display: block;
     margin-bottom: 0.3rem;
     padding-right: 1.2rem;
+    color: inherit;
   }
 
   .preset-btn .preset-wpm {
@@ -119,6 +120,7 @@
     opacity: 0.55;
     display: block;
     margin-bottom: 0.5rem;
+    color: inherit;
   }
 
   .preset-btn .preset-desc {
@@ -126,6 +128,7 @@
     font-weight: 300;
     line-height: 1.5;
     opacity: 0.75;
+    color: inherit;
   }
 
   .preset-btn.active .preset-desc,
@@ -230,7 +233,7 @@
 
   .input-area textarea {
     width: 100%;
-    min-height: 220px;
+    height: 220px;
     padding: 1.5rem;
     font-family: 'DM Sans', sans-serif;
     font-size: 1rem;
@@ -240,7 +243,8 @@
     background: transparent;
     border: none;
     outline: none;
-    resize: vertical;
+    resize: none;
+    overflow-y: auto;
   }
 
   .input-area textarea::placeholder { color: var(--muted); opacity: 0.6; }
